@@ -6,15 +6,10 @@
   <title>Cash4Cart</title>
   <!-- Telegram WebApp SDK (обязательно в <head>) -->
   <script src="https://telegram.org/js/telegram-web-app.js?59"></script>
-  <!-- TonConnect UI (опционально — включите, когда добавите manifest) -->
-  <!-- <script src="https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js"></script> -->
+  <!-- TonConnect UI (активирован) -->
+  <script src="https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--tg-theme-bg-color, #ffffff);
@@ -22,10 +17,7 @@
       padding: 16px;
       min-height: 100vh;
     }
-    .header {
-      text-align: center;
-      margin-bottom: 24px;
-    }
+    .header { text-align: center; margin-bottom: 24px; }
     .logo {
       font-size: 28px;
       font-weight: 800;
@@ -35,16 +27,13 @@
       color: transparent;
       margin-bottom: 8px;
     }
-    .subtitle {
-      font-size: 16px;
-      opacity: 0.8;
-      margin-bottom: 16px;
-    }
+    .subtitle { font-size: 16px; opacity: 0.8; margin-bottom: 16px; }
     .balance {
       font-size: 20px;
       font-weight: 600;
       color: var(--tg-theme-accent-text-color, #5B47FB);
       margin: 12px 0;
+      word-break: break-all;
     }
     .task {
       background: var(--tg-theme-secondary-bg-color, #f5f5f5);
@@ -53,17 +42,8 @@
       margin-bottom: 16px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     }
-    .task-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    .task-reward {
-      font-size: 16px;
-      color: #5B47FB;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
+    .task-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .task-reward { font-size: 16px; color: #5B47FB; font-weight: 600; margin-bottom: 12px; }
     .btn {
       display: block;
       width: 100%;
@@ -77,19 +57,10 @@
       cursor: pointer;
       transition: opacity 0.2s;
     }
-    .btn:active {
-      opacity: 0.8;
-    }
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .status {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 14px;
-      opacity: 0.7;
-    }
+    .btn.green { background: #00C853; }
+    .btn:active { opacity: 0.8; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { text-align: center; margin-top: 20px; font-size: 14px; opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -105,33 +76,22 @@
     <button class="btn" id="btn-ton">▶️ Выполнить</button>
   </div>
 
-  <div class="task">
-    <div class="task-title">🆕 @bloger: Подписаться на канал</div>
-    <div class="task-reward">+0.02 TON</div>
-    <button class="btn" id="btn-bloger">▶️ Выполнить</button>
-  </div>
+  <button class="btn green" id="btn-connect">🔑 Подключить кошелёк</button>
 
-  <button class="btn" id="btn-connect" style="background:#00C853">
-    🔑 Подключить кошелёк
-  </button>
-
-  <div class="status" id="status"></div>
+  <div id="status" class="status"></div>
 
   <script>
-    // 🔑 Инициализация Telegram WebApp — ОБЯЗАТЕЛЬНО как можно раньше
+    // 🔑 Инициализация Telegram WebApp — ОБЯЗАТЕЛЬНО первым
     if (window.Telegram?.WebApp) {
       const WebApp = Telegram.WebApp;
-      WebApp.ready(); // ← СКРЫВАЕТ ЧЁРНЫЙ ЭКРАН
+      WebApp.ready();
       WebApp.expand();
       WebApp.setHeaderColor('#5B47FB');
-      WebApp.setBackgroundColor('#FFFFFF');
 
-      // Получаем данные пользователя БЕЗОПАСНО
       const initData = WebApp.initDataUnsafe;
       const user = initData?.user;
       const userId = user?.id;
 
-      // Отображаем ID (для теста)
       if (userId) {
         document.getElementById('balance').textContent = `ID: ${userId}`;
         document.getElementById('status').textContent = 'Mini App загружен ✅';
@@ -139,56 +99,49 @@
         document.getElementById('balance').textContent = 'Готов к работе';
       }
 
-      // Кнопки
+      // 🔌 TonConnect: инициализация
+      let tonConnectUI = null;
+      try {
+        tonConnectUI = new TonConnectUI({
+          manifestUrl: 'https://Dioxit25.github.io/cash4cart/tonconnect-manifest.json'
+        });
+      } catch (e) {
+        console.error('TonConnect init failed:', e);
+        document.getElementById('status').textContent = '⚠️ TonConnect недоступен';
+      }
+
+      // 🚀 Подключение кошелька
+      async function connectWallet() {
+        if (!tonConnectUI) {
+          alert('TonConnect не поддерживается');
+          return;
+        }
+        try {
+          const wallet = await tonConnectUI.connect();
+          if (wallet?.account?.address) {
+            const addr = wallet.account.address;
+            document.getElementById('balance').textContent = `👛 ${addr.slice(0, 6)}...${addr.slice(-4)}`;
+            document.getElementById('status').textContent = 'Кошелёк подключён ✅';
+            document.getElementById('btn-connect').disabled = true;
+            document.getElementById('btn-connect').textContent = '✅ Подключено';
+          }
+        } catch (e) {
+          console.error('Connection error:', e);
+          document.getElementById('status').textContent = 'Подключение отменено';
+        }
+      }
+
+      // 📌 Кнопки
       document.getElementById('btn-ton').onclick = () => {
         WebApp.openTelegramLink('https://t.me/ton_org');
-        setTimeout(() => checkSubscription('@ton_org', 0.005), 2000);
       };
 
-      document.getElementById('btn-bloger').onclick = () => {
-        WebApp.openTelegramLink('https://t.me/bloger');
-        setTimeout(() => checkSubscription('@bloger', 0.02), 2000);
-      };
+      document.getElementById('btn-connect').onclick = connectWallet;
 
-      document.getElementById('btn-connect').onclick = () => {
-        alert('TonConnect будет подключён в День 4 🚀\nСейчас вы можете тестировать задания!');
-      };
-
-      // 🧪 Имитация проверки подписки (для MVP)
-      // В реальности — вызов /check_subscribe через ваш сервер
-      function checkSubscription(channel, reward) {
-        // Визуальная обратная связь
-        const btn = document.activeElement;
-        if (btn) {
-          btn.disabled = true;
-          btn.textContent = '⏳ Проверка...';
-        }
-
-        // Имитируем задержку (в реальности — fetch к вашему Replit)
-        setTimeout(() => {
-          // ⚠️ В MVP — считаем всё успешным (для теста)
-          // В продакшене: if (response.success) → выплата
-          showSuccess(reward);
-          if (btn) {
-            btn.textContent = '✅ Выполнено';
-            btn.style.background = '#00C853';
-          }
-        }, 1000);
-      }
-
-      function showSuccess(reward) {
-        WebApp.showPopup({
-          title: '🎉 Успех!',
-          message: `Вы получите ${reward} TON в течение 1 минуты.`,
-          buttons: [{ type: 'close' }]
-        });
-        // В реальности: вызов /api/complete → выплата через Tonkeeper API
-      }
-
-      // Защита от закрытия
+      // 🔒 Защита от закрытия
       WebApp.disableClosingConfirmation();
 
-      // Поддержка back button (если нужно)
+      // ◀️ Back button
       if (WebApp.BackButton) {
         WebApp.BackButton.show();
         WebApp.BackButton.onClick(() => WebApp.close());
