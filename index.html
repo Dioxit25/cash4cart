@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Cash4Cart</title>
-  <!-- Telegram WebApp SDK (обязательно в <head>) -->
+  <!-- 🔹 ОБЯЗАТЕЛЬНО: SDK первой строкой -->
   <script src="https://telegram.org/js/telegram-web-app.js?59"></script>
-  <!-- TonConnect UI (активирован) -->
+  <!-- 🔹 TonConnect UI — после telegram-web-app.js -->
   <script src="https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -81,16 +81,18 @@
   <div id="status" class="status"></div>
 
   <script>
-    // 🔑 Инициализация Telegram WebApp — ОБЯЗАТЕЛЬНО первым
+    // 🔑 Инициализация — строго по порядку документации
     if (window.Telegram?.WebApp) {
       const WebApp = Telegram.WebApp;
+
+      // ✅ 1. СНАЧАЛА вызываем ready() и expand()
       WebApp.ready();
       WebApp.expand();
       WebApp.setHeaderColor('#5B47FB');
 
+      // ✅ 2. Получаем данные ПОСЛЕ ready()
       const initData = WebApp.initDataUnsafe;
-      const user = initData?.user;
-      const userId = user?.id;
+      const userId = initData?.user?.id;
 
       if (userId) {
         document.getElementById('balance').textContent = `ID: ${userId}`;
@@ -99,23 +101,21 @@
         document.getElementById('balance').textContent = 'Готов к работе';
       }
 
-      // 🔌 TonConnect: инициализация
+      // ✅ 3. ТОЛЬКО ПОСЛЕ ready() — инициализируем TonConnect
       let tonConnectUI = null;
       try {
         tonConnectUI = new TonConnectUI({
-  manifestUrl: 'https://Dioxit25.github.io/cash4cart/tonconnect-manifest.js',
-  // + добавьте:
-  buttonRootId: 'btn-connect'
-});
+          manifestUrl: 'https://Dioxit25.github.io/cash4cart/tonconnect-manifest.js'
+        });
       } catch (e) {
-        console.error('TonConnect init failed:', e);
-        document.getElementById('status').textContent = '⚠️ TonConnect недоступен';
+        console.error('[INIT] TonConnect init failed:', e);
+        document.getElementById('status').textContent = '⚠️ TonConnect: init error';
       }
 
-      // 🚀 Подключение кошелька
-      async function connectWallet() {
+      // ✅ 4. Функция подключения
+      window.connectWallet = async function() {
         if (!tonConnectUI) {
-          alert('TonConnect не поддерживается');
+          document.getElementById('status').textContent = '❌ TonConnect не доступен';
           return;
         }
         try {
@@ -123,22 +123,22 @@
           if (wallet?.account?.address) {
             const addr = wallet.account.address;
             document.getElementById('balance').textContent = `👛 ${addr.slice(0, 6)}...${addr.slice(-4)}`;
-            document.getElementById('status').textContent = 'Кошелёк подключён ✅';
+            document.getElementById('status').textContent = '✅ Кошелёк подключён';
             document.getElementById('btn-connect').disabled = true;
             document.getElementById('btn-connect').textContent = '✅ Подключено';
           }
         } catch (e) {
-          console.error('Connection error:', e);
-          document.getElementById('status').textContent = 'Подключение отменено';
+          console.error('[CONNECT] Error:', e);
+          document.getElementById('status').textContent = '❌ Подключение отменено';
         }
-      }
+      };
 
-      // 📌 Кнопки
+      // ✅ 5. Кнопки
       document.getElementById('btn-ton').onclick = () => {
         WebApp.openTelegramLink('https://t.me/ton_org');
       };
 
-      document.getElementById('btn-connect').onclick = connectWallet;
+      document.getElementById('btn-connect').onclick = window.connectWallet;
 
       // 🔒 Защита от закрытия
       WebApp.disableClosingConfirmation();
@@ -155,4 +155,3 @@
   </script>
 </body>
 </html>
-
