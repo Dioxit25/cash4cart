@@ -103,8 +103,10 @@
       let tonConnectUI = null;
       try {
         tonConnectUI = new TonConnectUI({
-          manifestUrl: 'https://Dioxit25.github.io/cash4cart/tonconnect-manifest.json'
-        });
+  manifestUrl: 'https://Dioxit25.github.io/cash4cart/tonconnect-manifest.js',
+  // + добавьте:
+  buttonRootId: 'btn-connect'
+});
       } catch (e) {
         console.error('TonConnect init failed:', e);
         document.getElementById('status').textContent = '⚠️ TonConnect недоступен';
@@ -153,3 +155,4 @@
   </script>
 </body>
 </html>
+
